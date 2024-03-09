@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ class CharacteristicTile extends StatefulWidget {
 
 class _CharacteristicTileState extends State<CharacteristicTile> {
   List<int> _value = [];
+  bool blink = false ;
 
   late StreamSubscription<List<int>> _lastValueSubscription;
 
@@ -42,9 +44,21 @@ class _CharacteristicTileState extends State<CharacteristicTile> {
 
   BluetoothCharacteristic get c => widget.characteristic;
 
-  List<int> _getRandomBytes() {
-    final math = Random();
-    return [math.nextInt(255), math.nextInt(255), math.nextInt(255), math.nextInt(255)];
+  List<int> _getRandomBytes(int data) {
+    return [49, data];
+    // blink = !blink;
+    // blink = true;
+    // int metronome = 0;
+    // if (data>0) {
+    //   metronome = data;
+    // }
+    
+    // if (blink == true) {
+    //   return [49, metronome];
+    // }
+    // else {
+    //   return [48, metronome];
+    // }
   }
 
   Future onReadPressed() async {
@@ -56,9 +70,10 @@ class _CharacteristicTileState extends State<CharacteristicTile> {
     }
   }
 
-  Future onWritePressed() async {
+  Future onWritePressed(int data) async {
     try {
-      await c.write(_getRandomBytes(), withoutResponse: c.properties.writeWithoutResponse);
+      await c.write(_getRandomBytes(data), withoutResponse: c.properties.writeWithoutResponse);
+      // await c.write([1], withoutResponse: c.properties.writeWithoutResponse);
       Snackbar.show(ABC.c, "Write: Success", success: true);
       if (c.properties.read) {
         await c.read();
@@ -107,14 +122,31 @@ class _CharacteristicTileState extends State<CharacteristicTile> {
 
   Widget buildWriteButton(BuildContext context) {
     bool withoutResp = widget.characteristic.properties.writeWithoutResponse;
-    return TextButton(
-        child: Text(withoutResp ? "WriteNoResp" : "Write"),
-        onPressed: () async {
-          await onWritePressed();
-          if (mounted) {
-            setState(() {});
-          }
-        });
+    final myController = TextEditingController();
+    return Row(
+      children: [
+        SizedBox(
+          height: 20,
+          width: 200,
+          child: TextField(
+            controller: myController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              hintText: 'Enter a search term',
+            ),
+          ),
+        ),
+        TextButton(
+            child: Text(withoutResp ? "WriteNoResp" : "Write"),
+            onPressed: () async {
+              int value = int.tryParse(myController.text) ?? 0; 
+              await onWritePressed(value);
+              if (mounted) {
+                setState(() {});
+              }
+            }),
+      ],
+    );
   }
 
   Widget buildSubscribeButton(BuildContext context) {
